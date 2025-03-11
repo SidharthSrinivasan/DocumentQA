@@ -1,0 +1,7 @@
+torch
+sentence-transformers
+transformers
+faiss-cpu
+numpy
+streamlit
+pdfplumber
