@@ -8,6 +8,8 @@ import streamlit as st
 import pdfplumber
 import psutil
 
+huggingface_token = st.secrets["huggingface"]["token"]
+
 # Set device (CPU)
 device = "cpu"  # Ensure we're using CPU
 
