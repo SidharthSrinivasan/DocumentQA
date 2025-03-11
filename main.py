@@ -6,10 +6,8 @@ import numpy as np
 import streamlit as st
 import pdfplumber
 
-
 # Set device (CPU/GPU)
 device = "cpu"
-
 
 embedding_model = SentenceTransformer('BAAI/bge-small-en', device=device)
 # This Sentence Transformer uses dimensions of size 384
@@ -17,7 +15,7 @@ dimension = 384
 index = faiss.IndexFlatL2(dimension)
 faiss_index_path = "faiss_index.bin"  # File to store FAISS index persistently
 
-llm_model_name = "distilbert-base-uncased-distilled-squad"
+llm_model_name = "deepset/roberta-base-squad2"
 model = AutoModelForQuestionAnswering.from_pretrained(llm_model_name).to(device)
 tokenizer = AutoTokenizer.from_pretrained(llm_model_name)
 qa_pipeline = pipeline("question-answering", model=model, tokenizer=tokenizer, device=0 if device == "mps" else -1)
@@ -25,7 +23,6 @@ qa_pipeline = pipeline("question-answering", model=model, tokenizer=tokenizer, d
 # Load FAISS index if it exists
 if os.path.exists(faiss_index_path):
     index = faiss.read_index(faiss_index_path)
-
 
 
 def get_embedding(text):
@@ -49,10 +46,16 @@ def store_embedding(text_chunks):
         faiss.write_index(index, faiss_index_path)
 
 
-def generate_answer(question, retrieved_chunks):
-    context = " ".join(retrieved_chunks)  # Convert list to string
-    result = qa_pipeline(question=question, context=context)
-    return result['answer']
+def generate_answer(question, context):
+    results = qa_pipeline(question=question, context=context, top_k=3)  # Get top 3 answers
+
+    # Pick the highest-confidence answer above a threshold
+    best_answer = max(results, key=lambda x: x['score']) if results else None
+
+    if best_answer and best_answer['score'] > 0.5:  # Adjust the threshold as needed
+        return best_answer['answer']
+    else:
+        return "I couldn't find a reliable answer in the document."
 
 
 # Using Streamlit for webapp
@@ -68,14 +71,13 @@ if uploaded_file:
     with st.spinner("Processing document..."):
         store_embedding(text_chunks)
 
-
     question = st.text_input("Ask a question:")
     if question:
         query_embedding = get_embedding(question).reshape(1, -1)
-        _, I = index.search(query_embedding, k=3)  # Retrieve top 3 chunks
+        _, I = index.search(query_embedding, k=5)  # Retrieve top 5 chunks
 
-        # Filter out invalid indices (-1) and ensure we don't access an empty list
         retrieved_chunks = [text_chunks[i] for i in I[0] if 0 <= i < len(text_chunks)]
+        retrieved_context = " ".join(retrieved_chunks)  # Merge retrieved text
 
         if retrieved_chunks:
             answer = generate_answer(question, retrieved_chunks)
