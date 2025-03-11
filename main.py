@@ -15,8 +15,8 @@ device = "cpu"  # Ensure we're using CPU
 
 # Load Mistral 7B model and tokenizer
 llm_model_name = "mistralai/Mistral-7B-Instruct-v0.1"
-model = AutoModelForCausalLM.from_pretrained(llm_model_name, device_map=device)
-tokenizer = AutoTokenizer.from_pretrained(llm_model_name)
+model = AutoModelForCausalLM.from_pretrained(llm_model_name, use_auth_token=huggingface_token)
+tokenizer = AutoTokenizer.from_pretrained(llm_model_name, use_auth_token=huggingface_token)
 
 # FAISS setup
 dimension = 384
