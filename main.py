@@ -8,7 +8,7 @@ import pdfplumber
 
 
 # Set device (CPU/GPU)
-device = "mps"
+device = "cpu"
 
 
 embedding_model = SentenceTransformer('BAAI/bge-small-en', device=device)
